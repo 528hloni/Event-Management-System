@@ -17,5 +17,7 @@ database for storing event-related data*
 - MySQL 5.7 or later
 - NetBeans IDE (optional)
 
+  ![Main Menu](https://github.com/528hloni/Event-Management-System/blob/main/ems%20images/Main%20Menu.png) 
+
   
 
