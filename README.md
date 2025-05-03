@@ -1,4 +1,4 @@
-"# Event-Management-System" 
+## "Event-Management-System" 
 
 *The Event Management System (EMS) is a Java GUI application created to simplify the 
 organisation and management of events. It offers features for planning events, registering 
