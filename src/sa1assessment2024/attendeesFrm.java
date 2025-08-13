@@ -12,6 +12,10 @@ import java.sql.Statement;
 import java.util.Vector;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 /**
  *
@@ -52,36 +56,55 @@ public class attendeesFrm extends javax.swing.JFrame {
     }
      
      
+   
+     
      private void mLoadComboBoxItems() {
-         //Loading items from Event table(event name)
-         
-         String URL5 = "jdbc:mysql://localhost:3306/emsdb"; //Connection string to the database
-        String User5 = "root"; //User name to connect to database
-        String Password5 = "528_hloni"; //User password to connect to database
-        java.sql.Connection conMySQLConnectionString; //Declares connection string named conMySQLConnectionString,it will contain the driver for the connection string to the database
+    // Loading items from Event table (event name)
+    Properties props = new Properties();
+
+    try (InputStream fis = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+        if (fis == null) {
+            JOptionPane.showMessageDialog(this, "Config file not found!", "File Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Load DB credentials from config.properties
+        props.load(fis);
+        String URL6 = props.getProperty("db.url");
+        String User6 = props.getProperty("db.username");
+        String Password6 = props.getProperty("db.password");
+        
+         java.sql.Connection conMySQLConnectionString; //Declares connection string named conMySQLConnectionString,it will contain the driver for the connection string to the database
         Statement stStatement = null; //Declares statement named stStatement which will contain sql statement
         ResultSet rs = null; //Declares statement named rs which will contain quiried data from the table
-         
+
+        // Connect to DB
         try{
-        conMySQLConnectionString = DriverManager.getConnection(URL5,User5,Password5); //used to gain access to database
+        conMySQLConnectionString = DriverManager.getConnection(URL6,User6,Password6); //used to gain access to database
             stStatement = conMySQLConnectionString.createStatement();//This will instruct stStatement to execute SQL statement against the table in database
             String strQuery = "SELECT event_name FROM event_details";
             stStatement.execute(strQuery);
          rs=stStatement.getResultSet();
-        
-        // Clear existing items in case of reloading
-        cbEventSelection.removeAllItems();
 
-        // Populate combo box with items from database
-        while (rs.next()) {
-            cbEventSelection.addItem(rs.getString("event_name"));
+            // Clear existing items
+            cbEventSelection.removeAllItems();
+
+            // Populate combo box
+            while (rs.next()) {
+                cbEventSelection.addItem(rs.getString("event_name"));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error connecting to database", "Database Error", JOptionPane.ERROR_MESSAGE);
         }
 
-    } catch (Exception e) {
+    } catch (IOException e) {
         e.printStackTrace();
-        JOptionPane.showMessageDialog(this, "Error loading data", "Database Error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, "Error loading config file", "File Error", JOptionPane.ERROR_MESSAGE);
     }
 }
+     
      
      
       private void mSetvaluesToUpperCase(){
