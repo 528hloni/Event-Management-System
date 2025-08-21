@@ -4,6 +4,7 @@
  */
 package sa1assessment2024;
 
+import java.io.InputStream;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,6 +13,7 @@ import java.sql.Statement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Properties;
 import java.util.Vector;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
@@ -61,98 +63,212 @@ public class venueFrm extends javax.swing.JFrame {
         strAvailability = strAvailability.toUpperCase();
         }
     
+        
+         
+         
          private void mCheckIfItemsExistInTable(){
          //Validation to prevent duplication
          
-        String URL1 = "jdbc:mysql://localhost:3306/emsdb"; //Connection string to the database
-        String User1 = "root"; //User name to connect to database
-        String Password1 = "528_hloni"; //User password to connect to database
-        java.sql.Connection conMySQLConnectionString; //Declares connection string named conMySQLConnectionString,it will contain the driver for the connection string to the database
-        Statement stStatement = null; //Declares statement named stStatement which will contain sql statement
-        ResultSet rs = null; //Declares statement named rs which will contain quiried data from the table
+        // Load database credentials from config file to avoid hardcoding sensitive information
+        Properties props = new Properties();
         
-        // try catch contains code to run the query against database table
-        try {
-            conMySQLConnectionString = DriverManager.getConnection(URL1,User1,Password1); //used to gain access to database
-            stStatement = conMySQLConnectionString.createStatement();//This will instruct stStatement to execute SQL statement against the table in database
-            String strQuery = " Select * from venue_bookings where venue_name = '" + strVenueName + "' and address= '" //SQL statement
-            + strAddress + "' and capacity= '"+ intCapacity +"'and availability='" + strAvailability+"'";
-            stStatement.execute(strQuery); // Execute sql statements against the database table
-            rs=stStatement.getResultSet();
-            boolRecordExists=rs.next(); //Confirm if the record exist or not in the database
-            
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, e);
-        } finally { //final block has try catch that closes connection of the database
-            try {
-                stStatement.close();
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(null, "Connection String not closed"+""+e);
+        try (InputStream fis = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+            if (fis == null) {
+                JOptionPane.showMessageDialog(this, "Config file not found!", "File Error", JOptionPane.ERROR_MESSAGE);
+                return;
             }
-  
+
+            // Load DB credentials from config.properties
+            props.load(fis);
+            String URL1 = props.getProperty("db.url");        
+            String User1 = props.getProperty("db.username");   
+            String Password1 = props.getProperty("db.password"); 
+            
+            java.sql.Connection conMySQLConnectionString; //Declares connection string named conMySQLConnectionString,it will contain the driver for the connection string to the database
+            PreparedStatement pstStatement = null; //Declares prepared statement which will contain sql statement
+            ResultSet rs = null; //Declares statement named rs which will contain quiried data from the table
+            
+            // try catch contains code to run the query against database table
+            try {
+                conMySQLConnectionString = DriverManager.getConnection(URL1,User1,Password1); //used to gain access to database
+                
+                
+                String strQuery = "SELECT * FROM venue_bookings WHERE venue_name = ? AND address = ? AND capacity = ? AND availability = ?";
+                
+                // Prepare the statement with the parameterized query
+                pstStatement = conMySQLConnectionString.prepareStatement(strQuery);
+                
+                
+                pstStatement.setString(1, strVenueName);    // Set first ? placeholder with venue name
+                pstStatement.setString(2, strAddress);      // Set second ? placeholder with address
+                pstStatement.setInt(3, intCapacity);        // Set third ? placeholder with capacity (using setInt for integer)
+                pstStatement.setString(4, strAvailability); // Set fourth ? placeholder with availability
+                
+                // Execute the safe parameterized query
+                rs = pstStatement.executeQuery(); // Execute sql statements against the database table
+                boolRecordExists = rs.next(); //Confirm if the record exist or not in the database
+                
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, e);
+            } finally { //final block has try catch that closes connection of the database
+                try {
+                    if (rs != null) {
+                        rs.close(); // Close ResultSet to free up resources
+                    }
+                    if (pstStatement != null) {
+                        pstStatement.close(); // Close PreparedStatement to free up database resources
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(null, "Database resources not closed: " + e);
+                }
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error loading config file: " + e.getMessage(), "Config Error", JOptionPane.ERROR_MESSAGE);
         }
     }
          
+     
+      
+      
       private void mCreateVenue()
-              //Creating new venues
-    {
-        java.sql.Connection conMySQLConnectionString ; //Declares connection string named conMySQLConnectionString, it will contain the driver for the connection string to the database
-        String URL2 = "jdbc:mysql://localhost:3306/emsdb"; //Connection string to the database
-        String User2 = "root"; //User name to connect to database
-        String Password2 = "528_hloni"; //User password to connect to database
+          //Creating new venues
+{
+    // Load database credentials from config file to avoid hardcoding sensitive information
+    Properties props = new Properties();
+    
+    try (InputStream fis = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+        if (fis == null) {
+            JOptionPane.showMessageDialog(this, "Config file not found!", "File Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Load DB credentials from config.properties
+        props.load(fis);
+        String URL2 = props.getProperty("db.url");        
+        String User2 = props.getProperty("db.username");   
+        String Password2 = props.getProperty("db.password"); 
+        
+        java.sql.Connection conMySQLConnectionString; //Declares connection string named conMySQLConnectionString, it will contain the driver for the connection string to the database
+        PreparedStatement pstStatement = null; //Declares prepared statement which will contain sql statement
+        
         try {
             conMySQLConnectionString = DriverManager.getConnection(URL2,User2,Password2); //used to gain access to database
-            Statement myStatement = conMySQLConnectionString.createStatement(); 
-            String sqlinsert = "insert into venue_bookings (venue_name,address,capacity,availability) " + //Initialises the 'insert sql statement' to store the values inserted in the textfield
-            "values ('" + strVenueName + "','"+ strAddress+"','"+ intCapacity + "','"+ strAvailability +"')";
-            myStatement.executeUpdate(sqlinsert); // Execute sql statements against the database table
-            myStatement.close(); //Close connection of the database
+            
+            
+            String sqlinsert = "INSERT INTO venue_bookings (venue_name,address,capacity,availability) VALUES (?,?,?,?)";
+            
+            // Prepare the statement with the parameterized query
+            pstStatement = conMySQLConnectionString.prepareStatement(sqlinsert);
+            
+           
+            pstStatement.setString(1, strVenueName);    // Set first ? placeholder with venue name
+            pstStatement.setString(2, strAddress);      // Set second ? placeholder with address
+            pstStatement.setInt(3, intCapacity);        // Set third ? placeholder with capacity (using setInt for integer)
+            pstStatement.setString(4, strAvailability); // Set fourth ? placeholder with availability
+            
+            // Execute the safe parameterized insert statement
+            pstStatement.executeUpdate(); // Execute sql statements against the database table
+            
             JOptionPane.showMessageDialog(null,"Complete");
+            
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, e);
-        
+        } finally {
+            // Clean up database resources in finally block to ensure they're always closed
+            try {
+                if (pstStatement != null) {
+                    pstStatement.close(); // Close the PreparedStatement to free up database resources
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "PreparedStatement not closed: " + e);
+            }
         }
-        
-    }    
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Error loading config file: " + e.getMessage(), "Config Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
       
-     private void mTableView(){
-         //Viewing table
-         
-     int CC; //Column count
-     java.sql.Connection conMySQLConnectionString ;//Declares connection string named conMySQLConnectionString, it will contain the driver for the connection string to the database
-      String URL3 = "jdbc:mysql://localhost:3306/emsdb";//Connection string to the database
-        String User3 = "root"; //User name to connect to database
-        String Password3 = "528_hloni"; //User password to connect to database
-     PreparedStatement pst;
-        try {
-         conMySQLConnectionString = DriverManager.getConnection(URL3,User3,Password3);  //used to gain access to database 
-         pst = conMySQLConnectionString.prepareStatement("SELECT * FROM venue_bookings"); //SQL query to retrieve all records from 'passenger_details'
-         ResultSet Rs1 = pst.executeQuery();// Execute the query and store result in ResultSet.
-         
-        // ResultSetMetaData object provides information about the structure of the result set (e.g., the number of columns).
-         ResultSetMetaData RSMD = Rs1.getMetaData();
-         CC = RSMD.getColumnCount(); //Store column count
-         DefaultTableModel DFT = (DefaultTableModel) tblVenue.getModel();
-         DFT.setRowCount(0); // Set row count to 0 to start fresh.
-           
-         //Filling the the table
-         while (Rs1.next()) {
-             Vector v2 = new Vector(); //v2 holds passenger details
-             
-             for (int ii =1; ii <= CC; ii++){
-                 v2.add(Rs1.getString("venue_id"));
-                 v2.add(Rs1.getString("venue_name"));
-                 v2.add(Rs1.getString("address"));
-                 v2.add(Rs1.getString("capacity"));
-                 v2.add(Rs1.getString("availability"));
-             }
-             DFT.addRow(v2);
-         }        
-        } catch (Exception e) {
-          JOptionPane.showMessageDialog(null, e);  
-        }
-   }
    
+   
+     
+     
+     private void mTableView(){
+     //Viewing table
+     
+ int CC; //Column count
+ 
+ // Load database credentials from config file to avoid hardcoding sensitive information
+ Properties props = new Properties();
+ 
+ try (InputStream fis = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+     if (fis == null) {
+         JOptionPane.showMessageDialog(this, "Config file not found!", "File Error", JOptionPane.ERROR_MESSAGE);
+         return;
+     }
+
+     // Load DB credentials from config.properties
+     props.load(fis);
+     String URL3 = props.getProperty("db.url");        
+     String User3 = props.getProperty("db.username");   
+     String Password3 = props.getProperty("db.password"); 
+     
+     java.sql.Connection conMySQLConnectionString = null;//Declares connection string named conMySQLConnectionString, it will contain the driver for the connection string to the database
+     PreparedStatement pst = null; // PreparedStatement for safe database querying
+     ResultSet Rs1 = null; // ResultSet to hold query results
+     
+     try {
+      conMySQLConnectionString = DriverManager.getConnection(URL3,User3,Password3);  //used to gain access to database 
+      
+      
+      pst = conMySQLConnectionString.prepareStatement("SELECT * FROM venue_bookings"); 
+      
+      // Execute the query and store result in ResultSet
+      Rs1 = pst.executeQuery();
+      
+     // ResultSetMetaData object provides information about the structure of the result set (e.g the number of columns).
+      ResultSetMetaData RSMD = Rs1.getMetaData();
+      CC = RSMD.getColumnCount(); //Store column count
+      DefaultTableModel DFT = (DefaultTableModel) tblVenue.getModel();
+      DFT.setRowCount(0); // Set row count to 0 to start fresh.
+        
+      //Filling the table with database records
+      while (Rs1.next()) {
+          Vector v2 = new Vector(); //v2 holds venue details for current row
+          
+          // Add each column value to the vector (one row of data)
+          v2.add(Rs1.getString("venue_id"));      // Add venue ID
+          v2.add(Rs1.getString("venue_name"));    // Add venue name
+          v2.add(Rs1.getString("address"));       // Add venue address
+          v2.add(Rs1.getString("capacity"));      // Add venue capacity
+          v2.add(Rs1.getString("availability"));  // Add venue availability
+          
+          // Add the completed row to the table model
+          DFT.addRow(v2);
+      }        
+     } catch (Exception e) {
+       JOptionPane.showMessageDialog(null, e);  
+     } finally {
+         // Clean up database resources in finally block to ensure they're always closed
+         try {
+             if (Rs1 != null) {
+                 Rs1.close(); // Close ResultSet to free up resources
+             }
+             if (pst != null) {
+                 pst.close(); // Close PreparedStatement to free up resources
+             }
+             if (conMySQLConnectionString != null) {
+                 conMySQLConnectionString.close(); // Close database connection
+             }
+         } catch (Exception e) {
+             JOptionPane.showMessageDialog(null, "Error closing database resources: " + e);
+         }
+     }
+ } catch (Exception e) {
+     JOptionPane.showMessageDialog(this, "Error loading config file: " + e.getMessage(), "Config Error", JOptionPane.ERROR_MESSAGE);
+ }
+}
+     
+     
     private void mClearTextFields(){ //This will clear textfields once the values have been captured
         txtVenueName.setText("");
         txtAddress.setText("");
@@ -161,65 +277,144 @@ public class venueFrm extends javax.swing.JFrame {
         
     } 
     
+    
+     
+     
+     
+     
      private void mEditUpdate()
-             //  Update/Edit existing venues
-   { 
-    java.sql.Connection conMySQLConnectionString ; //Declares connection string named conMySQLConnectionString, it will contain the driver for the connection string to the database
-        String URL3 = "jdbc:mysql://localhost:3306/emsdb"; //Connection string to the database
-        String User3 = "root"; //User name to connect to database
-        String Password3 = "528_hloni"; //User password to connect to database
+         //  Update/Edit existing venues
+{ 
+    // Load database credentials from config file to avoid hardcoding sensitive information
+    Properties props = new Properties();
+    
+    try (InputStream fis = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+        if (fis == null) {
+            JOptionPane.showMessageDialog(this, "Config file not found!", "File Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Load DB credentials from config.properties
+        props.load(fis);
+        String URL3 = props.getProperty("db.url");       
+        String User3 = props.getProperty("db.username");   
+        String Password3 = props.getProperty("db.password"); 
         
-        //Get selected row information
-         DefaultTableModel model = (DefaultTableModel) tblVenue.getModel();//Get model of table
-      int selectedIndex = tblVenue.getSelectedRow();
-      int intVenueID = Integer.parseInt(model.getValueAt(selectedIndex,0).toString());
+        java.sql.Connection conMySQLConnectionString; //Declares connection string named conMySQLConnectionString, it will contain the driver for the connection string to the database
+        PreparedStatement pstStatement = null; //Declares prepared statement which will contain sql statement
+        
+        //Get selected row information from the venue table
+        DefaultTableModel model = (DefaultTableModel) tblVenue.getModel();//Get model of table
+        int selectedIndex = tblVenue.getSelectedRow(); // Get the selected row index
+        int intVenueID = Integer.parseInt(model.getValueAt(selectedIndex,0).toString()); // Get venue ID from first column
+        
         try {
             conMySQLConnectionString = DriverManager.getConnection(URL3,User3,Password3); //used to gain access to database
-            Statement euStatement = conMySQLConnectionString.createStatement(); 
-            String strQuery = "Update venue_bookings Set venue_name = '" + strVenueName + 
-                  "', address = '" + strAddress + 
-                  "', capacity = '" + intCapacity + 
-                  "', availability = '" + strAvailability + 
-                  "' Where venue_id = "+intVenueID;
-            euStatement.executeUpdate(strQuery); // Execute sql statements against the database table
-            euStatement.close(); //Close connection of the database
+            
+            
+            String strQuery = "UPDATE venue_bookings SET venue_name = ?, address = ?, capacity = ?, availability = ? WHERE venue_id = ?";
+            
+            // Prepare the statement with the parameterized query
+            pstStatement = conMySQLConnectionString.prepareStatement(strQuery);
+            
+            
+            pstStatement.setString(1, strVenueName);    // Set first ? placeholder with venue name
+            pstStatement.setString(2, strAddress);      // Set second ? placeholder with address
+            pstStatement.setInt(3, intCapacity);        // Set third ? placeholder with capacity (using setInt for integer)
+            pstStatement.setString(4, strAvailability); // Set fourth ? placeholder with availability
+            pstStatement.setInt(5, intVenueID);         // Set fifth ? placeholder with venue ID (using setInt for integer)
+            
+            // Execute the safe parameterized update statement
+            pstStatement.executeUpdate(); // Execute sql statements against the database table
+            
             JOptionPane.showMessageDialog(null,"Record Updated");
+            
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, e);
-           
+        } finally {
+            // Clean up database resources in finally block to ensure they're always closed
+            try {
+                if (pstStatement != null) {
+                    pstStatement.close(); // Close the PreparedStatement to free up database resources
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "PreparedStatement not closed: " + e);
+            }
         }
-   }
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Error loading config file: " + e.getMessage(), "Config Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
+     
+     
+     
+     
+
      
      private void mDelete()
-            // Delete venue 
-   {
-      java.sql.Connection conMySQLConnectionString ; //Declares connection string named conMySQLConnectionString, it will contain the driver for the connection string to the database
-        String URL3 = "jdbc:mysql://localhost:3306/emsdb"; //Connection string to the database
-        String User3 = "root"; //User name to connect to database
-        String Password3 = "528_hloni"; //User password to connect to database
+        // Delete venue 
+{
+    // Load database credentials from config file to avoid hardcoding sensitive information
+    Properties props = new Properties();
+    
+    try (InputStream fis = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+        if (fis == null) {
+            JOptionPane.showMessageDialog(this, "Config file not found!", "File Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Load DB credentials from config.properties
+        props.load(fis);
+        String URL3 = props.getProperty("db.url");        
+        String User3 = props.getProperty("db.username");   
+        String Password3 = props.getProperty("db.password"); 
         
-        //Get selected row information
-         DefaultTableModel model = (DefaultTableModel) tblVenue.getModel();//Get model of table
-      int selectedIndex = tblVenue.getSelectedRow();
-      int intVenueID = Integer.parseInt(model.getValueAt(selectedIndex,0).toString());
+        java.sql.Connection conMySQLConnectionString; //Declares connection string named conMySQLConnectionString, it will contain the driver for the connection string to the database
+        PreparedStatement pstStatement = null; //Declares prepared statement which will contain sql statement
+        
+        // Get selected row information from the venue table
+        DefaultTableModel model = (DefaultTableModel) tblVenue.getModel();//Get model of table
+        int selectedIndex = tblVenue.getSelectedRow(); // Get the selected row index
+        int intVenueID = Integer.parseInt(model.getValueAt(selectedIndex,0).toString()); // Get venue ID from first column
+        
         try {
             conMySQLConnectionString = DriverManager.getConnection(URL3,User3,Password3); //used to gain access to database
-            Statement dtStatement = conMySQLConnectionString.createStatement(); 
-            String strQuery = "DELETE FROM venue_bookings WHERE venue_id = '" + intVenueID + "' AND venue_name = '" + strVenueName + 
-                          "' AND address = '" + strAddress + "' AND capacity = '" + intCapacity + 
-                          "' AND availability = '" + strAvailability + "'";
             
-            dtStatement.executeUpdate(strQuery); // Execute sql statements against the database table
-            dtStatement.close(); //Close connection of the database
-            JOptionPane.showMessageDialog(null,"Record Deleted");
+            
+            String strQuery = "DELETE FROM venue_bookings WHERE venue_id = ?";
+            
+            // Prepare the statement with the parameterized query
+            pstStatement = conMySQLConnectionString.prepareStatement(strQuery);
+            
+            // Safely set the parameter - using setInt for the venue ID (integer value)
+            pstStatement.setInt(1, intVenueID); // Set first ? placeholder with venue ID
+            
+            // Execute the safe parameterized delete statement
+            int rowsAffected = pstStatement.executeUpdate(); // Execute sql statement and get number of affected rows
+            
+            // Check if the delete operation was successful
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(null,"Record Deleted");
+            } else {
+                JOptionPane.showMessageDialog(null,"No record found to delete");
+            }
+            
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, e);
-           
-        }  
-       
-       
-   }       
-    
+        } finally {
+            // Clean up database resources in finally block to ensure they're always closed
+            try {
+                if (pstStatement != null) {
+                    pstStatement.close(); // Close the PreparedStatement to free up database resources
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "PreparedStatement not closed: " + e);
+            }
+        }
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Error loading config file: " + e.getMessage(), "Config Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
     
     
     
