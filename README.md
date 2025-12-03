@@ -3,7 +3,7 @@
 *The Event Management System (EMS) is a Java GUI application created to simplify the 
 organisation and management of events. It offers features for planning events, registering 
 attendees and managing venues. The system is linked to a MySQL 
-database for storing event-related data* 
+database for storing event-related data using JDBC* 
 
 ## ✨ Features
 - **Event Planning**: Create, edit and delete events with details like date, time and organizer info.
