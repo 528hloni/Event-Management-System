@@ -6,7 +6,7 @@ attendees and managing venues. The system is linked to a MySQL
 database for storing event-related data* 
 
 ## ✨ Features
-- **Event Planning**: Create, edit, and delete events with details like date, time, and organizer info.
+- **Event Planning**: Create, edit and delete events with details like date, time and organizer info.
 - **Venue Management**: Track venues with capacity and availability status.
 - **Attendee Registration**: Register attendees and link them to specific events.
 - **Database Integration**: MySQL backend for persistent data storage.
